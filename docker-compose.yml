@@ -1,0 +1,17 @@
+services:
+  camera:
+    build: .
+    container_name: camera-mosaic
+    restart: unless-stopped
+    ports:
+      - "3010:3000"
+    volumes:
+      - camera_data:/app/data
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      # Change this to a strong random string in production
+      - SESSION_SECRET=zmgorka-camera-secret-2025
+
+volumes:
+  camera_data:

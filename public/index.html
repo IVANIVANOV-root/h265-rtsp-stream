@@ -1,0 +1,2384 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>CCTV Monitor</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230a0e13'/%3E%3Ccircle cx='16' cy='16' r='7' fill='none' stroke='%2300ff88' stroke-width='2'/%3E%3Ccircle cx='16' cy='16' r='2' fill='%2300ff88'/%3E%3C/svg%3E">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <meta name="theme-color" content="#0a0e13">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="CCTV">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #0a0e13;
+      --bg2:         #0d1219;
+      --surface:     #111820;
+      --surface2:    #151d27;
+      --border:      #1e2d3d;
+      --border2:     #243446;
+      --text:        #c8d8e8;
+      --text-dim:    #5a7a95;
+      --text-faint:  #2d4559;
+      --green:       #00ff88;
+      --green-dim:   #00c96a;
+      --green-glow:  rgba(0,255,136,.15);
+      --green-glow2: rgba(0,255,136,.08);
+      --amber:       #ffab00;
+      --red:         #ff3b3b;
+      --blue:        #4da6ff;
+      --radius:      6px;
+      --font-mono:   'Share Tech Mono', monospace;
+      --font-ui:     'Exo 2', sans-serif;
+      --font-head:   'Rajdhani', sans-serif;
+    }
+
+    ::selection { background: var(--green); color: #000; }
+
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+    body {
+      font-family: var(--font-ui);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ─── NOISE TEXTURE OVERLAY ─────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9999;
+      opacity: .4;
+    }
+
+    /* ─── LOGIN ─────────────────────────────────────── */
+    #page-login {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background:
+        radial-gradient(ellipse 60% 50% at 50% 0%, rgba(0,255,136,.07) 0%, transparent 70%),
+        var(--bg);
+    }
+
+    .login-wrap {
+      position: relative;
+      width: 360px;
+    }
+
+    .login-scan {
+      position: absolute;
+      inset: -1px;
+      border: 1px solid var(--green);
+      border-radius: 12px;
+      pointer-events: none;
+      box-shadow: 0 0 30px rgba(0,255,136,.12), inset 0 0 30px rgba(0,255,136,.04);
+    }
+    .login-scan::before {
+      content: '';
+      position: absolute;
+      left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--green), transparent);
+      animation: scan 3s ease-in-out infinite;
+      box-shadow: 0 0 12px var(--green);
+      border-radius: 1px;
+    }
+    @keyframes scan {
+      0%, 100% { top: 0; opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { top: calc(100% - 2px); }
+    }
+
+    .login-card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 44px 40px;
+      position: relative;
+    }
+
+    .login-logo {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    .login-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 64px; height: 64px;
+      border: 1.5px solid var(--green);
+      border-radius: 50%;
+      margin-bottom: 16px;
+      position: relative;
+      box-shadow: 0 0 20px var(--green-glow);
+    }
+    .login-icon::before {
+      content: '';
+      position: absolute;
+      inset: 6px;
+      border: 1px solid rgba(0,255,136,.3);
+      border-radius: 50%;
+    }
+    .login-icon svg { width: 28px; height: 28px; color: var(--green); }
+
+    .login-title {
+      font-family: var(--font-head);
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: #fff;
+    }
+    .login-sub {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-top: 4px;
+      letter-spacing: .08em;
+    }
+
+    .field { margin-bottom: 14px; }
+    .field label {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: .1em;
+      color: var(--green-dim);
+      margin-bottom: 6px;
+    }
+    .field input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: 14px;
+      color: var(--text);
+      background: var(--bg2);
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .field input:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px var(--green-glow2);
+    }
+    .field input::placeholder { color: var(--text-faint); }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 9px 18px;
+      border: none;
+      border-radius: var(--radius);
+      font-family: var(--font-ui);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+      white-space: nowrap;
+      letter-spacing: .04em;
+    }
+    .btn-primary {
+      background: var(--green);
+      color: #000;
+      font-weight: 700;
+      letter-spacing: .08em;
+    }
+    .btn-primary:hover { background: #00e87a; box-shadow: 0 0 20px rgba(0,255,136,.3); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-dim);
+      border: 1px solid var(--border2);
+    }
+    .btn-ghost:hover { background: var(--surface2); border-color: var(--border2); color: var(--text); }
+    .btn-danger { background: rgba(255,59,59,.12); color: var(--red); border: 1px solid rgba(255,59,59,.25); }
+    .btn-danger:hover { background: rgba(255,59,59,.2); }
+    .btn-success { background: rgba(0,255,136,.1); color: var(--green); border: 1px solid rgba(0,255,136,.25); }
+    .btn-success:hover { background: rgba(0,255,136,.18); }
+    .btn-full { width: 100%; padding: 12px; font-size: 14px; }
+    .btn-sm { padding: 5px 11px; font-size: 12px; }
+    .btn-icon { padding: 7px; border-radius: var(--radius); }
+
+    .error-msg {
+      background: rgba(255,59,59,.08);
+      color: var(--red);
+      border: 1px solid rgba(255,59,59,.2);
+      border-radius: var(--radius);
+      padding: 9px 14px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      margin-bottom: 14px;
+      display: none;
+    }
+
+    /* ─── MAIN LAYOUT ────────────────────────────────── */
+    #page-main { display: none; min-height: 100vh; flex-direction: column; }
+    #page-main.visible { display: flex; }
+
+    /* ─── HEADER / HUD ───────────────────────────────── */
+    .header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 16px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .header::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--green), transparent);
+      opacity: .3;
+    }
+
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand-icon {
+      width: 30px; height: 30px;
+      border: 1.5px solid var(--green);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 10px var(--green-glow);
+      flex-shrink: 0;
+      position: relative;
+    }
+    .brand-icon::after {
+      content: '';
+      position: absolute;
+      inset: 4px;
+      border-radius: 50%;
+      background: var(--green);
+      opacity: .5;
+      animation: pulse 2.5s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: .5; transform: scale(1); }
+      50% { opacity: .15; transform: scale(1.3); }
+    }
+
+    .brand-text {
+      font-family: var(--font-head);
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: .15em;
+      color: #fff;
+    }
+    .brand-sub {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-dim);
+      letter-spacing: .1em;
+      margin-top: 1px;
+    }
+
+    .header-center {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .hud-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+    }
+    .hud-stat-val {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--green);
+      line-height: 1;
+    }
+    .hud-stat-lbl {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-dim);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .hud-divider {
+      width: 1px;
+      height: 24px;
+      background: var(--border);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .hud-user {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: .05em;
+    }
+
+    .btn-hdr {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px; height: 32px;
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      background: var(--bg2);
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all .15s;
+      flex-shrink: 0;
+    }
+    .btn-hdr:hover { border-color: var(--green); color: var(--green); box-shadow: 0 0 8px var(--green-glow); }
+    .btn-hdr svg { width: 15px; height: 15px; }
+
+    /* Admin dropdown */
+    .dropdown { position: relative; }
+    .dropdown-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.5);
+      min-width: 200px;
+      z-index: 200;
+      overflow: hidden;
+    }
+    .dropdown.open .dropdown-menu { display: block; }
+    .dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      cursor: pointer;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+      transition: background .1s;
+      font-family: var(--font-ui);
+    }
+    .dropdown-item:hover { background: var(--surface2); color: var(--green); }
+    .dropdown-item svg { width: 14px; height: 14px; color: var(--text-dim); flex-shrink: 0; }
+    .dropdown-item:hover svg { color: var(--green); }
+
+    /* Admin trigger button */
+    .btn-admin {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      background: var(--bg2);
+      color: var(--text-dim);
+      font-size: 12px;
+      font-family: var(--font-mono);
+      cursor: pointer;
+      transition: all .15s;
+      letter-spacing: .04em;
+    }
+    .btn-admin:hover { border-color: var(--green); color: var(--green); }
+
+    /* ─── TOOLBAR ────────────────────────────────────── */
+    .toolbar {
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      padding: 7px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+
+    .toolbar-lbl {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-dim);
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    .cols-selector { display: flex; gap: 3px; }
+    .col-btn {
+      padding: 4px 9px;
+      border: 1px solid var(--border2);
+      border-radius: 4px;
+      background: transparent;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all .12s;
+    }
+    .col-btn.active {
+      background: var(--green);
+      border-color: var(--green);
+      color: #000;
+      font-weight: 700;
+    }
+    .col-btn:not(.active):hover { border-color: var(--text-dim); color: var(--text); }
+
+    .spacer { flex: 1; }
+
+    .cam-counter {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: .05em;
+    }
+
+    .btn-reload {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      background: transparent;
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      cursor: pointer;
+      transition: all .15s;
+      letter-spacing: .04em;
+    }
+    .btn-reload:hover { border-color: var(--green); color: var(--green); }
+    .btn-reload svg { width: 12px; height: 12px; }
+
+    /* ─── MOSAIC ─────────────────────────────────────── */
+    .mosaic {
+      flex: 1;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* ─── GROUP BLOCKS ───────────────────────────────── */
+    .group-block { }
+
+    .group-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 2px 8px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      user-select: none;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+    }
+    .group-header::after {
+      content: '';
+      position: absolute;
+      bottom: -1px; left: 0;
+      width: 60px;
+      height: 1px;
+      background: var(--green);
+      opacity: .5;
+    }
+
+    .group-header-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      flex-shrink: 0;
+      box-shadow: 0 0 6px var(--green);
+    }
+
+    .group-header-name {
+      font-family: var(--font-head);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      flex: 1;
+      transition: color .15s;
+    }
+    .group-header:hover .group-header-name { color: var(--green); }
+
+    .group-count {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-faint);
+      letter-spacing: .05em;
+    }
+
+    .group-toggle-btn {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      padding: 2px 8px;
+      border: 1px solid var(--border2);
+      border-radius: 3px;
+      background: transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all .12s;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+    }
+    .group-toggle-btn:hover { border-color: var(--text-dim); color: var(--text); }
+    .group-block.collapsed .group-toggle-btn { border-color: var(--green); color: var(--green); }
+
+    .group-tiles {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+    .group-tiles.cols-1 { grid-template-columns: 1fr; }
+    .group-tiles.cols-2 { grid-template-columns: repeat(2, 1fr); }
+    .group-tiles.cols-3 { grid-template-columns: repeat(3, 1fr); }
+    .group-tiles.cols-4 { grid-template-columns: repeat(4, 1fr); }
+    .group-tiles.cols-auto { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
+
+    .group-block.collapsed .group-tiles { display: none; }
+    .sortable-ghost { opacity: .25; }
+
+    /* ─── CAMERA TILE ────────────────────────────────── */
+    .cam-tile {
+      background: #000;
+      border-radius: var(--radius);
+      overflow: hidden;
+      position: relative;
+      aspect-ratio: 16 / 9;
+      border: 1px solid var(--border);
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .cam-tile:hover {
+      border-color: rgba(0,255,136,.3);
+      box-shadow: 0 0 16px rgba(0,255,136,.08);
+    }
+    .cam-tile.stream-online {
+      border-color: rgba(0,255,136,.2);
+    }
+
+    .cam-tile video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000;
+      display: block;
+    }
+
+    .cam-tile.in-fullscreen video {
+      touch-action: none;
+      transform-origin: center center;
+      will-change: transform;
+      cursor: grab;
+    }
+    .cam-tile.in-fullscreen video:active { cursor: grabbing; }
+
+    /* Scanline effect on hover */
+    .cam-tile::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,.03) 2px,
+        rgba(0,0,0,.03) 4px
+      );
+      pointer-events: none;
+      z-index: 2;
+      opacity: 0;
+      transition: opacity .3s;
+    }
+    .cam-tile:hover::before { opacity: 1; }
+
+    /* Corner decorators */
+    .cam-tile::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 14px; height: 14px;
+      border-top: 1.5px solid var(--green);
+      border-left: 1.5px solid var(--green);
+      opacity: 0;
+      transition: opacity .2s;
+      z-index: 3;
+    }
+    .cam-tile:hover::after { opacity: .6; }
+
+    .tile-corner-br {
+      position: absolute;
+      bottom: 0; right: 0;
+      width: 14px; height: 14px;
+      border-bottom: 1.5px solid var(--green);
+      border-right: 1.5px solid var(--green);
+      opacity: 0;
+      transition: opacity .2s;
+      z-index: 3;
+      pointer-events: none;
+    }
+    .cam-tile:hover .tile-corner-br { opacity: .6; }
+
+    .tile-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,.85) 0%, transparent 50%);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 10px 12px;
+      opacity: 0;
+      transition: opacity .2s;
+      pointer-events: none;
+      z-index: 4;
+    }
+    .cam-tile:hover .tile-overlay,
+    .cam-tile .tile-overlay.always { opacity: 1; }
+
+    .tile-bottom {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+    }
+
+    .tile-name {
+      font-family: var(--font-head);
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+      letter-spacing: .06em;
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .tile-status {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: rgba(255,255,255,.6);
+      flex-shrink: 0;
+      margin-left: 8px;
+    }
+
+    .status-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--amber);
+      flex-shrink: 0;
+    }
+    .status-dot.online {
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+      animation: blink 2.5s ease-in-out infinite;
+    }
+    .status-dot.offline { background: var(--red); }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .3; }
+    }
+
+    .tile-loading {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: .06em;
+      z-index: 5;
+    }
+
+    .spinner {
+      width: 28px; height: 28px;
+      border: 2px solid rgba(0,255,136,.1);
+      border-top-color: var(--green);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Fullscreen btn */
+    .tile-fullscreen-btn {
+      position: absolute;
+      top: 8px; right: 8px;
+      background: rgba(0,0,0,.6);
+      border: 1px solid rgba(0,255,136,.2);
+      border-radius: 4px;
+      padding: 4px 6px;
+      cursor: pointer;
+      color: rgba(255,255,255,.7);
+      opacity: 0;
+      transition: opacity .2s, background .15s;
+      pointer-events: none;
+      z-index: 6;
+      font-size: 12px;
+    }
+    .cam-tile:hover .tile-fullscreen-btn { opacity: 1; pointer-events: all; }
+    .tile-fullscreen-btn:hover { background: rgba(0,255,136,.15); color: var(--green); }
+
+    /* Admin btns */
+    .tile-admin-btns {
+      position: absolute;
+      top: 8px; left: 8px;
+      display: none;
+      gap: 4px;
+      z-index: 6;
+    }
+    .cam-tile:hover .tile-admin-btns { display: flex; }
+
+    .tile-admin-btn {
+      background: rgba(0,0,0,.65);
+      border: 1px solid var(--border2);
+      border-radius: 4px;
+      padding: 4px 7px;
+      cursor: pointer;
+      color: var(--text-dim);
+      font-size: 11px;
+      line-height: 1;
+      transition: all .12s;
+    }
+    .tile-admin-btn:hover { background: rgba(0,255,136,.12); border-color: var(--green); color: var(--green); }
+    .tile-admin-btn.del:hover { background: rgba(255,59,59,.15); border-color: var(--red); color: var(--red); }
+
+    /* Audio btn */
+    .tile-audio-btn {
+      position: absolute;
+      bottom: 12px; right: 12px;
+      background: rgba(0,0,0,.65);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      padding: 7px 10px;
+      cursor: pointer;
+      color: var(--text-dim);
+      font-size: 16px;
+      line-height: 1;
+      display: none;
+      z-index: 6;
+      transition: all .15s;
+    }
+    .cam-tile.in-fullscreen .tile-audio-btn { display: inline-block; }
+    .tile-audio-btn:hover { border-color: var(--green); color: var(--green); }
+    .tile-audio-btn.audio-on {
+      background: rgba(0,255,136,.12);
+      border-color: var(--green);
+      color: var(--green);
+      box-shadow: 0 0 10px var(--green-glow);
+    }
+
+    /* Empty state */
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 80px 20px;
+      color: var(--text-dim);
+    }
+    .empty-state svg {
+      width: 56px; height: 56px;
+      opacity: .15;
+      margin-bottom: 16px;
+      color: var(--green);
+    }
+    .empty-state h2 {
+      font-family: var(--font-head);
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: .08em;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+    .empty-state p {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    /* ─── MODAL ──────────────────────────────────────── */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.65);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-backdrop.open { display: flex; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 10px;
+      width: 100%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,.6), 0 0 0 1px rgba(0,255,136,.05);
+      position: relative;
+    }
+    .modal::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--green), transparent);
+      opacity: .4;
+    }
+
+    .modal-header {
+      padding: 20px 22px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .modal-header h2 {
+      font-family: var(--font-head);
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: #fff;
+    }
+    .modal-close {
+      background: none;
+      border: 1px solid var(--border2);
+      border-radius: 4px;
+      font-size: 18px;
+      line-height: 1;
+      padding: 3px 8px;
+      cursor: pointer;
+      color: var(--text-dim);
+      transition: all .12s;
+    }
+    .modal-close:hover { border-color: var(--red); color: var(--red); }
+
+    .modal-body { padding: 18px 22px; }
+    .modal-footer {
+      padding: 0 22px 20px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    /* Form */
+    .form-field { margin-bottom: 12px; }
+    .form-field label {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: .1em;
+      color: var(--green-dim);
+      margin-bottom: 5px;
+      text-transform: uppercase;
+    }
+    .form-field input, .form-field select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      font-family: var(--font-ui);
+      font-size: 13px;
+      color: var(--text);
+      background: var(--bg2);
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .form-field select { appearance: none; }
+    .form-field input:focus, .form-field select:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 2px var(--green-glow2);
+    }
+    .form-field .hint {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .section-title {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: .1em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin: 18px 0 10px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 6px;
+    }
+
+    /* Camera list in modal */
+    .cam-list { display: flex; flex-direction: column; gap: 6px; }
+
+    .cam-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--bg2);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      transition: border-color .15s;
+    }
+    .cam-row:hover { border-color: var(--border2); }
+    .cam-row-info { flex: 1; min-width: 0; }
+    .cam-row-name { font-size: 13px; font-weight: 600; color: var(--text); }
+    .cam-row-url {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-dim);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 2px;
+    }
+    .cam-row-badge {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 99px;
+      font-weight: 600;
+      background: rgba(0,255,136,.1);
+      color: var(--green);
+      border: 1px solid rgba(0,255,136,.2);
+    }
+    .cam-row-badge.off {
+      background: rgba(255,59,59,.08);
+      color: var(--red);
+      border-color: rgba(255,59,59,.2);
+    }
+    .cam-row-actions { display: flex; gap: 5px; flex-shrink: 0; }
+
+    /* Group rows */
+    .group-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 12px;
+      background: var(--bg2);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      margin-bottom: 5px;
+    }
+    .group-row-handle {
+      cursor: grab;
+      color: var(--text-faint);
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .group-row-name { flex: 1; font-size: 13px; font-weight: 600; color: var(--text); }
+    .group-row-input {
+      flex: 1;
+      padding: 4px 8px;
+      border: 1px solid var(--green);
+      border-radius: 4px;
+      font-size: 13px;
+      background: var(--bg2);
+      color: var(--text);
+      outline: none;
+    }
+    .group-row-actions { display: flex; gap: 5px; flex-shrink: 0; }
+    .sortable-group-ghost { opacity: .3; }
+
+    /* User rows */
+    .user-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--bg2);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      margin-bottom: 6px;
+    }
+    .user-row-info { flex: 1; min-width: 0; }
+    .user-row-name { font-size: 13px; font-weight: 600; color: var(--text); }
+    .role-badge {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 99px;
+      background: rgba(77,166,255,.1);
+      color: var(--blue);
+      border: 1px solid rgba(77,166,255,.2);
+    }
+    .role-badge.viewer {
+      background: rgba(90,122,149,.08);
+      color: var(--text-dim);
+      border-color: var(--border);
+    }
+
+    /* ─── INSTALL BANNER ──────────────────────────────── */
+    .install-banner {
+      display: none;
+      margin: 10px 12px 0;
+      padding: 12px 16px;
+      background: var(--surface2);
+      border: 1px solid rgba(0,255,136,.2);
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-dim);
+      line-height: 1.7;
+      position: relative;
+    }
+    .install-banner.show { display: block; }
+    .install-banner b { color: var(--green); }
+    .install-close {
+      background: none; border: none;
+      color: var(--text-faint);
+      font-size: 18px; line-height: 1;
+      cursor: pointer; float: right;
+      padding: 0 0 0 8px;
+    }
+    #installBtn {
+      display: none; width: 100%; margin-top: 10px; height: 36px;
+      background: rgba(0,255,136,.1);
+      color: var(--green);
+      border: 1px solid rgba(0,255,136,.3);
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: 12px; font-weight: 700;
+      cursor: pointer; letter-spacing: .08em;
+    }
+    .update-banner {
+      display: none;
+      position: fixed; bottom: 14px; left: 12px; right: 12px;
+      padding: 10px 16px;
+      background: var(--surface);
+      border: 1px solid var(--green);
+      border-radius: var(--radius);
+      z-index: 300; align-items: center; gap: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,.4), 0 0 16px var(--green-glow);
+      font-family: var(--font-mono);
+      font-size: 12px; color: var(--text-dim);
+    }
+    .update-banner.show { display: flex; }
+    .update-banner span { flex: 1; }
+    .update-btn {
+      background: var(--green);
+      color: #000;
+      border: none;
+      padding: 6px 14px;
+      font-weight: 700;
+      font-size: 12px;
+      font-family: var(--font-mono);
+      border-radius: 4px;
+      cursor: pointer;
+      letter-spacing: .06em;
+    }
+
+    /* ─── GROUPS MODAL: new group input ──────────────── */
+    .new-group-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .new-group-row input {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      font-family: var(--font-ui);
+      font-size: 13px;
+      background: var(--bg2);
+      color: var(--text);
+      outline: none;
+    }
+    .new-group-row input:focus { border-color: var(--green); }
+
+    /* ─── CLOCK ──────────────────────────────────────── */
+    #hud-clock {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--green);
+      letter-spacing: .06em;
+    }
+
+    /* ─── RESPONSIVE ─────────────────────────────────── */
+    @media (max-width: 600px) {
+      .group-tiles.cols-2,
+      .group-tiles.cols-3,
+      .group-tiles.cols-4,
+      .group-tiles.cols-auto { grid-template-columns: 1fr; }
+      .form-row { grid-template-columns: 1fr; }
+      .login-card { padding: 32px 24px; }
+      .login-wrap { width: 100%; max-width: 360px; }
+      .header-center { display: none; }
+      .hud-user { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════ LOGIN ════════════════════ -->
+<div id="page-login">
+  <div class="login-wrap">
+    <div class="login-scan"></div>
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="login-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M15 10l4.553-2.276A1 1 0 0 1 21 8.72v6.56a1 1 0 0 1-1.447.895L15 14"/>
+            <rect x="3" y="7" width="12" height="10" rx="2"/>
+          </svg>
+        </div>
+        <div class="login-title">CCTV MONITOR</div>
+        <div class="login-sub">СИСТЕМА ВИДЕОНАБЛЮДЕНИЯ</div>
+      </div>
+
+      <div id="login-error" class="error-msg">// ОШИБКА: неверный логин или пароль</div>
+
+      <div class="field">
+        <label>// ИДЕНТИФИКАТОР</label>
+        <input id="inp-user" type="text" placeholder="admin" autocomplete="username">
+      </div>
+      <div class="field">
+        <label>// КЛЮЧ ДОСТУПА</label>
+        <input id="inp-pass" type="password" placeholder="••••••" autocomplete="current-password">
+      </div>
+
+      <button class="btn btn-primary btn-full" onclick="doLogin()" style="margin-top:8px;font-family:var(--font-mono);letter-spacing:.1em">ВОЙТИ В СИСТЕМУ</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════ MAIN ════════════════════ -->
+<div id="page-main">
+
+  <!-- Header / HUD -->
+  <header class="header">
+    <div class="header-brand">
+      <div class="brand-icon"></div>
+      <div>
+        <div class="brand-text">CCTV</div>
+        <div class="brand-sub">CCTV · МОНИТОРИНГ</div>
+      </div>
+    </div>
+
+    <div class="header-center">
+      <div class="hud-stat">
+        <div class="hud-stat-val" id="hud-cam-count">—</div>
+        <div class="hud-stat-lbl">КАМЕР</div>
+      </div>
+      <div class="hud-divider"></div>
+      <div class="hud-stat">
+        <div class="hud-stat-val" id="hud-online-count">—</div>
+        <div class="hud-stat-lbl">ОНЛАЙН</div>
+      </div>
+      <div class="hud-divider"></div>
+      <div id="hud-clock">00:00:00</div>
+    </div>
+
+    <div class="header-right">
+      <span class="hud-user" id="header-user"></span>
+
+      <button class="btn-hdr admin-only" onclick="openAddModal()" title="Добавить камеру">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+      </button>
+
+      <div class="dropdown admin-only" id="admin-dropdown">
+        <button class="btn-admin" onclick="toggleAdminMenu()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          </svg>
+          ADMIN ▾
+        </button>
+        <div class="dropdown-menu">
+          <button class="dropdown-item" onclick="openGroupsModal(); toggleAdminMenu()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7" rx="1"/>
+              <rect x="14" y="3" width="7" height="7" rx="1"/>
+              <rect x="3" y="14" width="7" height="7" rx="1"/>
+              <rect x="14" y="14" width="7" height="7" rx="1"/>
+            </svg>
+            Группы
+          </button>
+          <button class="dropdown-item" onclick="openUsersModal(); toggleAdminMenu()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            Пользователи
+          </button>
+          <button class="dropdown-item" onclick="openPasswordModal(); toggleAdminMenu()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            Сменить пароль
+          </button>
+          <button class="dropdown-item" onclick="doLogout()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            Выйти
+          </button>
+        </div>
+      </div>
+
+      <!-- viewer logout -->
+      <button class="btn-hdr viewer-only" id="viewer-logout" onclick="doLogout()" title="Выйти" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Install banner -->
+  <div class="install-banner" id="installBanner">
+    <button class="install-close" onclick="dismissInstall()">×</button>
+    <span id="installText"><b>// УСТАНОВИТЬ ПРИЛОЖЕНИЕ</b> — быстрый доступ к камерам с главного экрана</span>
+    <button id="installBtn">УСТАНОВИТЬ</button>
+  </div>
+
+  <!-- Update banner -->
+  <div class="update-banner" id="updateBanner">
+    <span>// ДОСТУПНА НОВАЯ ВЕРСИЯ</span>
+    <button class="update-btn" id="updateBtn">ОБНОВИТЬ</button>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <span class="toolbar-lbl">СЕТКА:</span>
+    <div class="cols-selector">
+      <button class="col-btn" data-cols="1" onclick="setCols(1)">1</button>
+      <button class="col-btn" data-cols="2" onclick="setCols(2)">2</button>
+      <button class="col-btn" data-cols="3" onclick="setCols(3)">3</button>
+      <button class="col-btn" data-cols="4" onclick="setCols(4)">4</button>
+      <button class="col-btn active" data-cols="auto" onclick="setCols('auto')">AUTO</button>
+    </div>
+    <div class="spacer"></div>
+    <span class="cam-counter" id="cam-counter"></span>
+    <button class="btn-reload" onclick="reloadAll()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="23 4 23 10 17 10"/>
+        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+      </svg>
+      RELOAD
+    </button>
+  </div>
+
+  <!-- Mosaic -->
+  <div class="mosaic cols-auto" id="mosaic"></div>
+</div>
+
+<!-- ════════ MODALS ════════ -->
+
+<!-- Manage cameras -->
+<div class="modal-backdrop" id="modal-manage">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Камеры</h2>
+      <button class="modal-close" onclick="closeModal('modal-manage')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="cam-list" id="cam-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit camera -->
+<div class="modal-backdrop" id="modal-edit">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="edit-title">Добавить камеру</h2>
+      <button class="modal-close" onclick="closeModal('modal-edit')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-id">
+      <div class="form-field">
+        <label>Название</label>
+        <input id="edit-name" type="text" placeholder="Въезд, Зал, Склад...">
+      </div>
+      <div class="form-field">
+        <label>RTSP URL</label>
+        <input id="edit-url" type="text" placeholder="rtsp://192.168.1.100:554/...">
+        <div class="hint">// Поддерживаются H.264 и H.265/HEVC</div>
+      </div>
+      <div class="form-field">
+        <label>Группа</label>
+        <select id="edit-group"></select>
+      </div>
+      <div class="section-title">// Авторизация камеры</div>
+      <div class="form-row">
+        <div class="form-field">
+          <label>Логин</label>
+          <input id="edit-cam-user" type="text" placeholder="admin">
+        </div>
+        <div class="form-field">
+          <label>Пароль</label>
+          <input id="edit-cam-pass" type="password" placeholder="••••••">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-edit')">ОТМЕНА</button>
+      <button class="btn btn-primary" onclick="saveCamera()">СОХРАНИТЬ</button>
+    </div>
+  </div>
+</div>
+
+<!-- Groups -->
+<div class="modal-backdrop" id="modal-groups">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Группы камер</h2>
+      <button class="modal-close" onclick="closeModal('modal-groups')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="new-group-row">
+        <input id="new-group-name" type="text" placeholder="Название новой группы">
+        <button class="btn btn-success" onclick="addGroup()">+ ДОБАВИТЬ</button>
+      </div>
+      <div id="groups-error" class="error-msg"></div>
+      <div id="group-list"></div>
+      <p style="font-family:var(--font-mono);font-size:10px;color:var(--text-dim);margin-top:10px;letter-spacing:.04em">// Перетащите для изменения порядка</p>
+    </div>
+  </div>
+</div>
+
+<!-- Users -->
+<div class="modal-backdrop" id="modal-users">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Пользователи</h2>
+      <button class="modal-close" onclick="closeModal('modal-users')">×</button>
+    </div>
+    <div class="modal-body">
+      <button class="btn btn-success" onclick="openAddUserModal()" style="width:100%;margin-bottom:14px">+ ДОБАВИТЬ ПОЛЬЗОВАТЕЛЯ</button>
+      <div id="user-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Add user -->
+<div class="modal-backdrop" id="modal-add-user">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Новый пользователь</h2>
+      <button class="modal-close" onclick="closeModal('modal-add-user')">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="add-user-error" class="error-msg"></div>
+      <div class="form-field">
+        <label>Логин</label>
+        <input id="new-username" type="text" placeholder="ivanov">
+      </div>
+      <div class="form-field">
+        <label>Пароль</label>
+        <input id="new-password" type="password" placeholder="••••••">
+      </div>
+      <div class="form-field">
+        <label>Права</label>
+        <select id="new-role">
+          <option value="viewer">Просмотр</option>
+          <option value="admin">Редактирование</option>
+        </select>
+        <div class="hint">// Редактирование — может добавлять и удалять камеры</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-add-user')">ОТМЕНА</button>
+      <button class="btn btn-primary" onclick="saveNewUser()">СОЗДАТЬ</button>
+    </div>
+  </div>
+</div>
+
+<!-- Change password -->
+<div class="modal-backdrop" id="modal-password">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Смена пароля</h2>
+      <button class="modal-close" onclick="closeModal('modal-password')">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="pass-error" class="error-msg"></div>
+      <div id="pass-success" class="error-msg" style="background:rgba(0,255,136,.06);color:var(--green);border-color:rgba(0,255,136,.2)"></div>
+      <div class="form-field">
+        <label>Текущий пароль</label>
+        <input id="pass-current" type="password" placeholder="••••••">
+      </div>
+      <div class="form-field">
+        <label>Новый пароль</label>
+        <input id="pass-new" type="password" placeholder="••••••">
+      </div>
+      <div class="form-field">
+        <label>Повтор нового пароля</label>
+        <input id="pass-confirm" type="password" placeholder="••••••">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-password')">ОТМЕНА</button>
+      <button class="btn btn-primary" onclick="changePassword()">СОХРАНИТЬ</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mpegts.js@1.7.3/dist/mpegts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+
+<script>
+'use strict';
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let wsToken = null;
+let userRole = null;
+let cameras = [];
+let players = {};
+let cols = 'auto';
+let audioActive = {};
+let fullscreenCamId = null;
+let scrollBeforeFullscreen = 0;
+let sortables = [];
+let groups = [];
+let hiddenGroups = new Set(JSON.parse(localStorage.getItem('hiddenGroups') || '[]'));
+let onlineCount = 0;
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+function openModal(id) { $(id).classList.add('open'); }
+function closeModal(id) { $(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-backdrop').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) closeModal(el.id); });
+});
+
+// ─── Clock ────────────────────────────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  $('hud-clock').textContent =
+    String(now.getHours()).padStart(2,'0') + ':' +
+    String(now.getMinutes()).padStart(2,'0') + ':' +
+    String(now.getSeconds()).padStart(2,'0');
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  const res = await fetch('/api/me');
+  const data = await res.json();
+  if (data.authenticated) {
+    wsToken = data.wsToken;
+    showMain(data.username, data.role);
+    loadCameras();
+  }
+});
+
+$('inp-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+async function doLogin() {
+  const username = $('inp-user').value.trim();
+  const password = $('inp-pass').value;
+  if (!username || !password) return;
+
+  const res = await fetch('/api/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password })
+  });
+  const data = await res.json();
+
+  if (data.ok) {
+    wsToken = data.wsToken;
+    $('login-error').style.display = 'none';
+    showMain(data.username, data.role);
+    loadCameras();
+  } else {
+    $('login-error').style.display = 'block';
+  }
+}
+
+async function doLogout() {
+  await fetch('/api/logout', { method: 'POST' });
+  location.reload();
+}
+
+function showMain(username, role) {
+  userRole = role;
+  $('page-login').style.display = 'none';
+  $('page-main').classList.add('visible');
+  $('header-user').textContent = username.toUpperCase();
+  document.querySelectorAll('.admin-only').forEach(el => {
+    el.style.display = role === 'admin' ? '' : 'none';
+  });
+  if (role !== 'admin') {
+    $('viewer-logout').style.display = '';
+  }
+}
+
+// ─── Groups ───────────────────────────────────────────────────────────────────
+async function loadGroups() {
+  const res = await fetch('/api/groups');
+  groups = await res.json();
+}
+
+// ─── Cameras ─────────────────────────────────────────────────────────────────
+async function loadCameras() {
+  await loadGroups();
+  const res = await fetch('/api/cameras');
+  cameras = await res.json();
+  renderMosaic();
+  renderCamList();
+  $('cam-counter').textContent = cameras.length + ' КАМЕР';
+  $('hud-cam-count').textContent = cameras.length;
+  updateOnlineHud();
+}
+
+function updateOnlineHud() {
+  let count = 0;
+  cameras.forEach(cam => {
+    const dot = $('dot-' + cam.id);
+    if (dot && dot.classList.contains('online')) count++;
+  });
+  onlineCount = count;
+  $('hud-online-count').textContent = count;
+}
+
+// ─── Grid ─────────────────────────────────────────────────────────────────────
+function setCols(n) {
+  cols = n;
+  document.querySelectorAll('.col-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.cols == String(n));
+  });
+  document.querySelectorAll('.group-tiles').forEach(el => {
+    el.className = 'group-tiles cols-' + n;
+  });
+}
+
+// ─── Mosaic ───────────────────────────────────────────────────────────────────
+function renderMosaic() {
+  for (const id in players) destroyPlayer(parseInt(id));
+  sortables.forEach(s => s.destroy());
+  sortables = [];
+
+  const mosaic = $('mosaic');
+  mosaic.innerHTML = '';
+
+  if (cameras.length === 0) {
+    mosaic.innerHTML =
+      '<div class="empty-state">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">' +
+          '<path d="M15 10l4.553-2.276A1 1 0 0 1 21 8.72v6.56a1 1 0 0 1-1.447.895L15 14"/>' +
+          '<rect x="3" y="7" width="12" height="10" rx="2"/>' +
+          '<line x1="3" y1="3" x2="21" y2="21"/>' +
+        '</svg>' +
+        '<h2>НЕТ КАМЕР</h2>' +
+        '<p>// Добавьте первую камеру через кнопку «+»</p>' +
+      '</div>';
+    return;
+  }
+
+  const grouped = {};
+  cameras.forEach(cam => {
+    const g = cam.group_name || '';
+    if (!grouped[g]) grouped[g] = [];
+    grouped[g].push(cam);
+  });
+
+  const groupOrder = groups.map(g => g.name);
+  Object.keys(grouped).forEach(g => { if (g && !groupOrder.includes(g)) groupOrder.push(g); });
+  if (grouped['']) groupOrder.push('');
+
+  groupOrder.forEach(groupName => {
+    const cams = grouped[groupName];
+    if (!cams || cams.length === 0) return;
+
+    const safeId = groupName.replace(/\s+/g, '_') || '_ungrouped';
+    const displayName = groupName || 'БЕЗ ГРУППЫ';
+    const isHidden = hiddenGroups.has(groupName);
+
+    const block = document.createElement('div');
+    block.className = 'group-block' + (isHidden ? ' collapsed' : '');
+    block.id = 'group-' + safeId;
+
+    block.innerHTML =
+      '<div class="group-header" onclick="toggleGroup(\'' + esc(groupName) + '\')">' +
+        '<div class="group-header-dot"></div>' +
+        '<span class="group-header-name">' + esc(displayName) + '</span>' +
+        '<span class="group-count">' + cams.length + ' ' + plural(cams.length, 'КАМЕРА', 'КАМЕРЫ', 'КАМЕР') + '</span>' +
+        '<button class="group-toggle-btn" onclick="event.stopPropagation();toggleGroup(\'' + esc(groupName) + '\')">' +
+          (isHidden ? 'ПОКАЗАТЬ' : 'СКРЫТЬ') +
+        '</button>' +
+      '</div>' +
+      '<div class="group-tiles cols-' + cols + '" id="group-tiles-' + safeId + '" data-group="' + esc(groupName) + '"></div>';
+
+    mosaic.appendChild(block);
+
+    const tilesContainer = document.getElementById('group-tiles-' + safeId);
+    cams.forEach(cam => {
+      const tile = document.createElement('div');
+      tile.className = 'cam-tile';
+      tile.id = 'tile-' + cam.id;
+      tile.dataset.camId = cam.id;
+
+      const adminBtns = userRole === 'admin'
+        ? '<div class="tile-admin-btns">' +
+            '<button class="tile-admin-btn" onclick="openEditModal(' + cam.id + ', event)">✏</button>' +
+            '<button class="tile-admin-btn del" onclick="deleteCamera(' + cam.id + ', event)">✕</button>' +
+          '</div>'
+        : '';
+
+      tile.innerHTML =
+        '<video id="video-' + cam.id + '" muted playsinline></video>' +
+        '<div class="tile-loading" id="loading-' + cam.id + '">' +
+          '<div class="spinner"></div>' +
+          '<span>ПОДКЛЮЧЕНИЕ...</span>' +
+        '</div>' +
+        '<div class="tile-overlay always">' +
+          '<div class="tile-bottom">' +
+            '<span class="tile-name">' + esc(cam.name) + '</span>' +
+            '<span class="tile-status">' +
+              '<span class="status-dot" id="dot-' + cam.id + '"></span>' +
+              '<span id="status-' + cam.id + '">—</span>' +
+            '</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="tile-corner-br"></div>' +
+        adminBtns +
+        '<button class="tile-fullscreen-btn" onclick="goFullscreen(' + cam.id + ', event)">⛶</button>' +
+        '<button class="tile-audio-btn" id="audio-btn-' + cam.id + '" onclick="toggleAudio(' + cam.id + ', event)">🔇</button>';
+
+      tile.addEventListener('dblclick', () => goFullscreen(cam.id));
+      tilesContainer.appendChild(tile);
+      if (!isHidden) startPlayer(cam.id);
+    });
+
+    if (userRole === 'admin' && typeof Sortable !== 'undefined') {
+      const s = Sortable.create(tilesContainer, {
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        delay: 500,
+        delayOnTouchOnly: true,
+        touchStartThreshold: 5,
+        onEnd: () => saveGroupOrder(groupName)
+      });
+      sortables.push(s);
+    }
+  });
+}
+
+function plural(n, one, few, many) {
+  const mod10 = n % 10, mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
+  return many;
+}
+
+function toggleGroup(groupName) {
+  const safeId = groupName.replace(/\s+/g, '_') || '_ungrouped';
+  const block = $('group-' + safeId);
+  if (!block) return;
+  const btn = block.querySelector('.group-toggle-btn');
+  const groupCams = cameras.filter(c => (c.group_name || '') === groupName);
+
+  if (hiddenGroups.has(groupName)) {
+    hiddenGroups.delete(groupName);
+    block.classList.remove('collapsed');
+    if (btn) btn.textContent = 'СКРЫТЬ';
+    groupCams.forEach(cam => startPlayer(cam.id));
+  } else {
+    hiddenGroups.add(groupName);
+    block.classList.add('collapsed');
+    if (btn) btn.textContent = 'ПОКАЗАТЬ';
+    groupCams.forEach(cam => {
+      if (audioActive[cam.id]) stopAudio(cam.id);
+      destroyPlayer(cam.id);
+    });
+  }
+  localStorage.setItem('hiddenGroups', JSON.stringify([...hiddenGroups]));
+}
+
+async function saveGroupOrder(groupName) {
+  const safeId = groupName.replace(/\s+/g, '_') || '_ungrouped';
+  const container = $('group-tiles-' + safeId);
+  if (!container) return;
+  const order = [...container.querySelectorAll('.cam-tile')].map(el => parseInt(el.dataset.camId));
+  await fetch('/api/cameras/reorder', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ order })
+  });
+  order.forEach((id, i) => {
+    const cam = cameras.find(c => c.id === id);
+    if (cam) cam.sort_pos = i;
+  });
+}
+
+function esc(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ─── Player ───────────────────────────────────────────────────────────────────
+function startPlayer(camId) {
+  if (!mpegts.isSupported()) {
+    setStatus(camId, 'offline', 'N/A');
+    return;
+  }
+
+  const video = $('video-' + camId);
+  const wsProto = location.protocol === 'https:' ? 'wss' : 'ws';
+  const url = wsProto + '://' + location.host + '/ws/stream/' + camId + '?token=' + wsToken;
+
+  const player = mpegts.createPlayer({
+    type: 'mpegts',
+    isLive: true,
+    url,
+  }, {
+    enableWorker: false,
+    liveMaxLatencyChasing: true,
+    liveMaxLatencyChaseValue: 3,
+    liveLatencyChaseThreshold: 0.5,
+    liveChaseSpeedUp: 1.1,
+    stashInitialSize: 128,
+  });
+
+  player.attachMediaElement(video);
+  player.load();
+
+  player.on(mpegts.Events.ERROR, (errType, errDetail) => {
+    console.warn('[Cam ' + camId + '] error:', errType, errDetail);
+    setStatus(camId, 'offline', 'ERR');
+    destroyPlayer(camId);
+    setTimeout(() => startPlayer(camId), 5000);
+  });
+
+  video.addEventListener('playing', () => {
+    $('loading-' + camId).style.display = 'none';
+    setStatus(camId, 'online', 'LIVE');
+    $('tile-' + camId)?.classList.add('stream-online');
+    updateOnlineHud();
+  }, { once: false });
+
+  video.addEventListener('waiting', () => setStatus(camId, 'loading', 'BUF...'));
+  video.addEventListener('stalled', () => setStatus(camId, 'loading', 'WAIT'));
+
+  player.play().catch(() => {});
+  players[camId] = player;
+}
+
+function destroyPlayer(camId) {
+  const p = players[camId];
+  if (!p) return;
+  try { p.destroy(); } catch {}
+  delete players[camId];
+  $('tile-' + camId)?.classList.remove('stream-online');
+  setStatus(camId, 'offline', 'OFF');
+  updateOnlineHud();
+}
+
+function setStatus(camId, state, text) {
+  const dot = $('dot-' + camId);
+  const lbl = $('status-' + camId);
+  if (!dot || !lbl) return;
+  dot.className = 'status-dot ' + state;
+  lbl.textContent = text;
+}
+
+function reloadAll() {
+  for (const id in players) destroyPlayer(parseInt(id));
+  cameras.forEach(cam => {
+    audioActive[cam.id] = false;
+    const btn = $('audio-btn-' + cam.id);
+    if (btn) { btn.classList.remove('audio-on'); btn.textContent = '🔇'; }
+    startPlayer(cam.id);
+  });
+}
+
+// ─── Fullscreen ───────────────────────────────────────────────────────────────
+function goFullscreen(camId, e) {
+  if (e) e.stopPropagation();
+  const tile = $('tile-' + camId);
+  const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+  if (fsEl) {
+    if (document.exitFullscreen) document.exitFullscreen();
+    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+  } else {
+    if (tile.requestFullscreen) tile.requestFullscreen();
+    else if (tile.webkitRequestFullscreen) tile.webkitRequestFullscreen();
+  }
+}
+
+function handleFullscreenChange() {
+  const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+  if (fsEl) {
+    scrollBeforeFullscreen = window.scrollY;
+    const match = fsEl.id && fsEl.id.match(/^tile-(\d+)$/);
+    if (match) {
+      fullscreenCamId = parseInt(match[1]);
+      fsEl.classList.add('in-fullscreen');
+      attachZoom(fsEl);
+    }
+  } else {
+    if (fullscreenCamId !== null) {
+      if (audioActive[fullscreenCamId]) stopAudio(fullscreenCamId);
+      const tile = $('tile-' + fullscreenCamId);
+      if (tile) { tile.classList.remove('in-fullscreen'); detachZoom(tile); }
+      fullscreenCamId = null;
+    }
+    setTimeout(() => window.scrollTo({ top: scrollBeforeFullscreen, behavior: 'instant' }), 50);
+  }
+}
+
+document.addEventListener('fullscreenchange', handleFullscreenChange);
+document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+
+// ─── Pinch/Pan Zoom ───────────────────────────────────────────────────────────
+const zoom = { scale: 1, tx: 0, ty: 0 };
+let zoomTile = null, zoomPinching = false, zoomPanning = false;
+let pinchStartDist = 0, pinchStartScale = 1;
+let panStartX = 0, panStartY = 0, panStartTx = 0, panStartTy = 0;
+let lastTapTime = 0;
+
+function zoomVideo() {
+  if (!zoomTile) return;
+  const v = zoomTile.querySelector('video');
+  if (v) v.style.transform = `scale(${zoom.scale}) translate(${zoom.tx}px, ${zoom.ty}px)`;
+}
+
+function resetZoom() {
+  zoom.scale = 1; zoom.tx = 0; zoom.ty = 0;
+  if (zoomTile) { const v = zoomTile.querySelector('video'); if (v) v.style.transform = ''; }
+}
+
+function pinchDist(t) { return Math.hypot(t[1].clientX - t[0].clientX, t[1].clientY - t[0].clientY); }
+
+function onZoomStart(e) {
+  if (e.touches.length === 2) {
+    e.preventDefault();
+    zoomPinching = true; zoomPanning = false;
+    pinchStartDist = pinchDist(e.touches);
+    pinchStartScale = zoom.scale;
+  } else if (e.touches.length === 1) {
+    const now = Date.now();
+    if (now - lastTapTime < 300) { resetZoom(); lastTapTime = 0; return; }
+    lastTapTime = now;
+    if (zoom.scale > 1) {
+      e.preventDefault();
+      zoomPanning = true; zoomPinching = false;
+      panStartX = e.touches[0].clientX; panStartY = e.touches[0].clientY;
+      panStartTx = zoom.tx; panStartTy = zoom.ty;
+    }
+  }
+}
+
+function onZoomMove(e) {
+  if (zoomPinching && e.touches.length === 2) {
+    e.preventDefault();
+    zoom.scale = Math.max(1, Math.min(8, pinchStartScale * pinchDist(e.touches) / pinchStartDist));
+    zoomVideo();
+  } else if (zoomPanning && e.touches.length === 1 && zoom.scale > 1) {
+    e.preventDefault();
+    zoom.tx = panStartTx + (e.touches[0].clientX - panStartX) / zoom.scale;
+    zoom.ty = panStartTy + (e.touches[0].clientY - panStartY) / zoom.scale;
+    zoomVideo();
+  }
+}
+
+function onZoomEnd(e) {
+  if (e.touches.length < 2) zoomPinching = false;
+  if (e.touches.length < 1) zoomPanning = false;
+  if (zoom.scale <= 1) resetZoom();
+}
+
+function detachZoom(tile) {
+  resetZoom();
+  tile.removeEventListener('touchstart', onZoomStart);
+  tile.removeEventListener('touchmove',  onZoomMove);
+  tile.removeEventListener('touchend',   onZoomEnd);
+  tile.removeEventListener('wheel',      onZoomWheel);
+  tile.removeEventListener('mousedown',  onZoomMouseDown);
+  tile.removeEventListener('dblclick',   onZoomDblClick);
+  zoomTile = null;
+}
+
+// Mouse zoom (desktop)
+let mouseDown = false, mousePanX = 0, mousePanY = 0, mousePanTx = 0, mousePanTy = 0;
+
+function onZoomWheel(e) {
+  e.preventDefault();
+  const delta = e.deltaY > 0 ? 0.9 : 1.1;
+  zoom.scale = Math.max(1, Math.min(8, zoom.scale * delta));
+  if (zoom.scale <= 1) { zoom.tx = 0; zoom.ty = 0; }
+  zoomVideo();
+}
+
+function onZoomMouseDown(e) {
+  if (e.button !== 0 || zoom.scale <= 1) return;
+  e.preventDefault();
+  mouseDown = true;
+  mousePanX = e.clientX; mousePanY = e.clientY;
+  mousePanTx = zoom.tx; mousePanTy = zoom.ty;
+}
+
+function onZoomMouseMove(e) {
+  if (!mouseDown || !zoomTile) return;
+  zoom.tx = mousePanTx + (e.clientX - mousePanX) / zoom.scale;
+  zoom.ty = mousePanTy + (e.clientY - mousePanY) / zoom.scale;
+  zoomVideo();
+}
+
+function onZoomMouseUp() { mouseDown = false; }
+
+function onZoomDblClick(e) { e.preventDefault(); resetZoom(); }
+
+function attachZoom(tile) {
+  zoomTile = tile; resetZoom();
+  tile.addEventListener('touchstart', onZoomStart,    { passive: false });
+  tile.addEventListener('touchmove',  onZoomMove,     { passive: false });
+  tile.addEventListener('touchend',   onZoomEnd);
+  tile.addEventListener('wheel',      onZoomWheel,    { passive: false });
+  tile.addEventListener('mousedown',  onZoomMouseDown);
+  tile.addEventListener('dblclick',   onZoomDblClick);
+}
+
+document.addEventListener('mousemove', onZoomMouseMove);
+document.addEventListener('mouseup',   onZoomMouseUp);
+
+// ─── Audio ────────────────────────────────────────────────────────────────────
+function toggleAudio(camId, e) {
+  if (e) e.stopPropagation();
+  if (audioActive[camId]) stopAudio(camId);
+  else startAudio(camId);
+}
+
+function startAudio(camId) {
+  if (!mpegts.isSupported()) return;
+  destroyPlayer(camId);
+  const video = $('video-' + camId);
+  const wsProto = location.protocol === 'https:' ? 'wss' : 'ws';
+  const url = wsProto + '://' + location.host + '/ws/audio/' + camId + '?token=' + wsToken;
+
+  const player = mpegts.createPlayer({ type: 'mpegts', isLive: true, url }, {
+    enableWorker: false,
+    liveMaxLatencyChasing: true,
+    liveMaxLatencyChaseValue: 3,
+    liveLatencyChaseThreshold: 0.5,
+    liveChaseSpeedUp: 1.1,
+    stashInitialSize: 128,
+  });
+
+  player.attachMediaElement(video);
+  player.load();
+
+  player.on(mpegts.Events.ERROR, () => { setStatus(camId, 'offline', 'ERR'); stopAudio(camId); });
+
+  video.addEventListener('playing', () => {
+    $('loading-' + camId).style.display = 'none';
+    setStatus(camId, 'online', 'LIVE');
+  }, { once: false });
+
+  video.muted = false;
+  player.play().catch(() => { video.muted = false; player.play().catch(() => {}); });
+
+  players[camId] = player;
+  audioActive[camId] = true;
+  const btn = $('audio-btn-' + camId);
+  if (btn) { btn.classList.add('audio-on'); btn.textContent = '🔊'; }
+}
+
+function stopAudio(camId) {
+  if (!audioActive[camId]) return;
+  destroyPlayer(camId);
+  const video = $('video-' + camId);
+  if (video) video.muted = true;
+  startPlayer(camId);
+  audioActive[camId] = false;
+  const btn = $('audio-btn-' + camId);
+  if (btn) { btn.classList.remove('audio-on'); btn.textContent = '🔇'; }
+}
+
+// ─── Groups management ────────────────────────────────────────────────────────
+let groupsSortable = null;
+
+function openGroupsModal() {
+  renderGroupsList();
+  openModal('modal-groups');
+}
+
+function renderGroupsList() {
+  const list = $('group-list');
+  if (!groups.length) {
+    list.innerHTML = '<p style="font-family:var(--font-mono);font-size:12px;color:var(--text-dim);text-align:center;padding:16px 0">// Нет групп</p>';
+    return;
+  }
+  list.innerHTML = groups.map(g =>
+    '<div class="group-row" data-group-id="' + g.id + '">' +
+      '<span class="group-row-handle">⠿</span>' +
+      '<span class="group-row-name" id="gname-' + g.id + '">' + esc(g.name) + '</span>' +
+      '<input class="group-row-input" id="ginput-' + g.id + '" type="text" value="' + esc(g.name) + '" style="display:none" ' +
+        'onkeydown="if(event.key===\'Enter\')saveGroupName(' + g.id + ');if(event.key===\'Escape\')cancelGroupEdit(' + g.id + ')">' +
+      '<div class="group-row-actions">' +
+        '<button class="btn btn-ghost btn-sm" id="gedit-' + g.id + '" onclick="startGroupEdit(' + g.id + ')">✏</button>' +
+        '<button class="btn btn-success btn-sm" id="gsave-' + g.id + '" style="display:none" onclick="saveGroupName(' + g.id + ')">✔</button>' +
+        '<button class="btn btn-danger btn-sm" onclick="deleteGroup(' + g.id + ')">✕</button>' +
+      '</div>' +
+    '</div>'
+  ).join('');
+
+  if (groupsSortable) groupsSortable.destroy();
+  groupsSortable = Sortable.create(list, {
+    handle: '.group-row-handle',
+    animation: 150,
+    ghostClass: 'sortable-group-ghost',
+    onEnd: saveGroupsOrder
+  });
+}
+
+function startGroupEdit(id) {
+  $('gname-' + id).style.display = 'none';
+  $('ginput-' + id).style.display = '';
+  $('gedit-' + id).style.display = 'none';
+  $('gsave-' + id).style.display = '';
+  $('ginput-' + id).focus();
+  $('ginput-' + id).select();
+}
+
+function cancelGroupEdit(id) {
+  $('gname-' + id).style.display = '';
+  $('ginput-' + id).style.display = 'none';
+  $('gedit-' + id).style.display = '';
+  $('gsave-' + id).style.display = 'none';
+}
+
+async function saveGroupName(id) {
+  const newName = $('ginput-' + id).value.trim();
+  if (!newName) return;
+  const res = await fetch('/api/groups/' + id, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: newName })
+  });
+  if (res.ok) { await loadCameras(); renderGroupsList(); }
+  else { const err = await res.json(); showGroupsError(err.error || 'ERR'); }
+}
+
+async function addGroup() {
+  const nameInput = $('new-group-name');
+  const name = nameInput.value.trim();
+  if (!name) return;
+  const res = await fetch('/api/groups', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name })
+  });
+  if (res.ok) { nameInput.value = ''; await loadGroups(); renderGroupsList(); }
+  else { const err = await res.json(); showGroupsError(err.error || 'ERR'); }
+}
+
+async function deleteGroup(id) {
+  const g = groups.find(x => x.id === id);
+  if (!g || !confirm('Удалить группу «' + g.name + '»?')) return;
+  await fetch('/api/groups/' + id, { method: 'DELETE' });
+  await loadCameras();
+  renderGroupsList();
+}
+
+async function saveGroupsOrder() {
+  const list = $('group-list');
+  const order = [...list.querySelectorAll('.group-row')].map(el => parseInt(el.dataset.groupId));
+  await fetch('/api/groups/reorder', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ order })
+  });
+  order.forEach((id, i) => { const g = groups.find(x => x.id === id); if (g) g.sort_pos = i; });
+  groups.sort((a, b) => a.sort_pos - b.sort_pos);
+  renderMosaic();
+}
+
+function showGroupsError(msg) {
+  const el = $('groups-error');
+  el.textContent = '// ' + msg;
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 3000);
+}
+
+// ─── Admin dropdown ───────────────────────────────────────────────────────────
+function toggleAdminMenu() { $('admin-dropdown').classList.toggle('open'); }
+document.addEventListener('click', e => {
+  const dd = $('admin-dropdown');
+  if (dd && !dd.contains(e.target)) dd.classList.remove('open');
+});
+
+// ─── Camera management ────────────────────────────────────────────────────────
+function openManageModal() { renderCamList(); openModal('modal-manage'); }
+
+function renderCamList() {
+  const list = $('cam-list');
+  if (!cameras.length) {
+    list.innerHTML = '<p style="font-family:var(--font-mono);font-size:12px;color:var(--text-dim);text-align:center;padding:16px 0">// Нет камер</p>';
+    return;
+  }
+  list.innerHTML = cameras.map(cam =>
+    '<div class="cam-row">' +
+      '<div class="cam-row-info">' +
+        '<div class="cam-row-name">' + esc(cam.name) + '</div>' +
+        '<div class="cam-row-url">' + (cam.group_name ? '// ' + esc(cam.group_name) + ' · ' : '// ') + esc(cam.url) + '</div>' +
+      '</div>' +
+      '<span class="cam-row-badge ' + (cam.enabled ? '' : 'off') + '">' + (cam.enabled ? 'ON' : 'OFF') + '</span>' +
+      '<div class="cam-row-actions">' +
+        '<button class="btn btn-ghost btn-sm" onclick="openEditModal(' + cam.id + ')">✏</button>' +
+        '<button class="btn btn-danger btn-sm" onclick="deleteCamera(' + cam.id + ')">✕</button>' +
+      '</div>' +
+    '</div>'
+  ).join('');
+}
+
+function buildGroupSelect(selectedValue) {
+  const sel = $('edit-group');
+  sel.innerHTML = '<option value="">— Без группы —</option>' +
+    groups.map(g => '<option value="' + esc(g.name) + '"' + (g.name === selectedValue ? ' selected' : '') + '>' + esc(g.name) + '</option>').join('');
+}
+
+function openAddModal() {
+  $('edit-title').textContent = 'ДОБАВИТЬ КАМЕРУ';
+  $('edit-id').value = '';
+  $('edit-name').value = '';
+  $('edit-url').value = '';
+  $('edit-cam-user').value = '';
+  $('edit-cam-pass').value = '';
+  buildGroupSelect('');
+  openModal('modal-edit');
+}
+
+function openEditModal(id, e) {
+  if (e) e.stopPropagation();
+  const cam = cameras.find(c => c.id === id);
+  if (!cam) return;
+  $('edit-title').textContent = 'РЕДАКТИРОВАТЬ КАМЕРУ';
+  $('edit-id').value = cam.id;
+  $('edit-name').value = cam.name;
+  $('edit-url').value = cam.url;
+  $('edit-cam-user').value = cam.cam_user || '';
+  $('edit-cam-pass').value = '';
+  buildGroupSelect(cam.group_name || '');
+  closeModal('modal-manage');
+  openModal('modal-edit');
+}
+
+async function saveCamera() {
+  const id = $('edit-id').value;
+  const name = $('edit-name').value.trim();
+  const url = $('edit-url').value.trim();
+  const cam_user = $('edit-cam-user').value.trim();
+  const cam_pass = $('edit-cam-pass').value;
+  const group_name = $('edit-group').value;
+  if (!name || !url) { alert('Заполните название и URL'); return; }
+  const body = { name, url, cam_user, cam_pass, enabled: 1, group_name };
+  const method = id ? 'PUT' : 'POST';
+  const endpoint = id ? '/api/cameras/' + id : '/api/cameras';
+  const res = await fetch(endpoint, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (res.ok) { closeModal('modal-edit'); await loadCameras(); }
+  else alert('Ошибка сохранения');
+}
+
+async function deleteCamera(id, e) {
+  if (e) e.stopPropagation();
+  if (!confirm('Удалить камеру?')) return;
+  if (audioActive[id]) stopAudio(id);
+  destroyPlayer(id);
+  await fetch('/api/cameras/' + id, { method: 'DELETE' });
+  await loadCameras();
+}
+
+// ─── User management ─────────────────────────────────────────────────────────
+async function openUsersModal() { await loadUserList(); openModal('modal-users'); }
+
+async function loadUserList() {
+  const res = await fetch('/api/users');
+  const users = await res.json();
+  const list = $('user-list');
+  list.innerHTML = users.map(u =>
+    '<div class="user-row">' +
+      '<div class="user-row-info"><div class="user-row-name">' + esc(u.username) + '</div></div>' +
+      '<span class="role-badge ' + (u.role === 'viewer' ? 'viewer' : '') + '">' +
+        (u.role === 'admin' ? 'ADMIN' : 'VIEW') +
+      '</span>' +
+      '<div class="cam-row-actions">' +
+        '<button class="btn btn-ghost btn-sm" onclick="toggleUserRole(' + u.id + ', \'' + u.role + '\')">⇄</button>' +
+        '<button class="btn btn-danger btn-sm" onclick="deleteUser(' + u.id + ')">✕</button>' +
+      '</div>' +
+    '</div>'
+  ).join('');
+}
+
+function openAddUserModal() {
+  $('new-username').value = '';
+  $('new-password').value = '';
+  $('new-role').value = 'viewer';
+  $('add-user-error').style.display = 'none';
+  openModal('modal-add-user');
+}
+
+async function saveNewUser() {
+  const username = $('new-username').value.trim();
+  const password = $('new-password').value;
+  const role = $('new-role').value;
+  if (!username || !password) { showUserError('Заполните все поля'); return; }
+  const res = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password, role }) });
+  const data = await res.json();
+  if (res.ok) { closeModal('modal-add-user'); await loadUserList(); }
+  else showUserError(data.error || 'ERR');
+}
+
+function showUserError(msg) {
+  const el = $('add-user-error');
+  el.textContent = '// ' + msg;
+  el.style.display = 'block';
+}
+
+async function toggleUserRole(id, currentRole) {
+  const newRole = currentRole === 'admin' ? 'viewer' : 'admin';
+  const res = await fetch('/api/users/' + id + '/role', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role: newRole }) });
+  if (res.ok) await loadUserList();
+  else { const d = await res.json(); alert(d.error); }
+}
+
+async function deleteUser(id) {
+  if (!confirm('Удалить пользователя?')) return;
+  const res = await fetch('/api/users/' + id, { method: 'DELETE' });
+  if (res.ok) await loadUserList();
+  else { const d = await res.json(); alert(d.error); }
+}
+
+// ─── Change password ──────────────────────────────────────────────────────────
+function openPasswordModal() {
+  $('pass-current').value = ''; $('pass-new').value = ''; $('pass-confirm').value = '';
+  $('pass-error').style.display = 'none'; $('pass-success').style.display = 'none';
+  openModal('modal-password');
+}
+
+async function changePassword() {
+  const currentPassword = $('pass-current').value;
+  const newPassword = $('pass-new').value;
+  const confirm = $('pass-confirm').value;
+  $('pass-error').style.display = 'none'; $('pass-success').style.display = 'none';
+  if (!currentPassword || !newPassword) { showPassError('Заполните все поля'); return; }
+  if (newPassword !== confirm) { showPassError('Пароли не совпадают'); return; }
+  const res = await fetch('/api/change-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ currentPassword, newPassword }) });
+  const data = await res.json();
+  if (res.ok) {
+    const el = $('pass-success'); el.textContent = '// Пароль успешно изменён'; el.style.display = 'block';
+    $('pass-current').value = ''; $('pass-new').value = ''; $('pass-confirm').value = '';
+  } else showPassError(data.error || 'ERR');
+}
+
+function showPassError(msg) {
+  const el = $('pass-error'); el.textContent = '// ' + msg; el.style.display = 'block';
+}
+
+// ─── PWA ─────────────────────────────────────────────────────────────────────
+const isStandalone = navigator.standalone === true ||
+  window.matchMedia('(display-mode: standalone)').matches;
+
+let swReg = null;
+let deferredInstallPrompt = null;
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' })
+    .then(reg => {
+      swReg = reg;
+      if (reg.waiting) showUpdateBanner(reg);
+      reg.addEventListener('updatefound', () => {
+        const nw = reg.installing;
+        nw.addEventListener('statechange', () => {
+          if (nw.state === 'installed' && navigator.serviceWorker.controller) showUpdateBanner(reg);
+        });
+      });
+    }).catch(e => console.warn('SW:', e));
+}
+
+function showUpdateBanner(reg) {
+  $('updateBanner').classList.add('show');
+  $('updateBtn').addEventListener('click', () => {
+    reg.waiting.postMessage('SKIP_WAITING');
+    navigator.serviceWorker.addEventListener('controllerchange', () => location.reload());
+  });
+}
+
+function dismissInstall() {
+  localStorage.setItem('installDismissed', '1');
+  $('installBanner').classList.remove('show');
+}
+
+if (!isStandalone && !localStorage.getItem('installDismissed')) {
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    const btn = $('installBtn');
+    btn.style.display = 'block';
+    btn.addEventListener('click', () => {
+      deferredInstallPrompt.prompt();
+      deferredInstallPrompt.userChoice.then(r => {
+        if (r.outcome === 'accepted') dismissInstall();
+        deferredInstallPrompt = null;
+      });
+    });
+    $('installBanner').classList.add('show');
+  });
+  if (isIOS) {
+    $('installText').innerHTML = '// Добавьте на экран: <b>Поделиться</b> → <b>«На экран Домой»</b>';
+    $('installBanner').classList.add('show');
+  }
+  window.addEventListener('appinstalled', dismissInstall);
+}
+</script>
+</body>
+</html>
