@@ -122,6 +122,14 @@ if (process.env.SESSION_SECRET) {
   fs.writeFileSync(SECRET_FILE, sessionSecret, { mode: 0o600 });
 }
 
+// COOKIE_SECURE: 'auto' (default) = express reads X-Forwarded-Proto
+//                'false'          = HTTP without proxy
+//                'true'           = HTTPS direct
+const cookieSecureRaw = process.env.COOKIE_SECURE || 'auto';
+const cookieSecure = cookieSecureRaw === 'true' ? true
+                   : cookieSecureRaw === 'false' ? false
+                   : 'auto';
+
 const sessionMiddleware = session({
   secret: sessionSecret,
   resave: false,
@@ -132,7 +140,7 @@ const sessionMiddleware = session({
     maxAge: 30 * 24 * 60 * 60 * 1000,
     httpOnly: true,
     sameSite: 'strict',
-    secure: 'auto',
+    secure: cookieSecure,
   },
 });
 
